@@ -19,7 +19,19 @@ object Capture {
 
     private val recent = java.util.LinkedHashMap<String, Long>()
 
-    fun isMediaUrl(url: String): Boolean = MEDIA_RE.containsMatchIn(url) && !TS_RE.containsMatchIn(url)
+    fun isMediaUrl(url: String): Boolean {
+        if (isAudioOnlyUrl(url)) return false
+        return MEDIA_RE.containsMatchIn(url) && !TS_RE.containsMatchIn(url)
+    }
+
+    private val AUDIO_EXT_RE = Regex("""\.(mp3|m4a|aac|wav|opus|flac)(\?|#|$|%25)""", RegexOption.IGNORE_CASE)
+    private val AUDIO_URL_RE = Regex("""(^|[/_-])(audio|aac|m4a|mp4a)([/_.-]|\?|#|$|%25)""", RegexOption.IGNORE_CASE)
+
+    /** Skip audio-only URLs — the user wants video only. Manifests stay valid. */
+    fun isAudioOnlyUrl(url: String): Boolean {
+        if (Regex("""\.(m3u8|mpd)(\?|#|$|%25)""", RegexOption.IGNORE_CASE).containsMatchIn(url)) return false
+        return AUDIO_EXT_RE.containsMatchIn(url) || AUDIO_URL_RE.containsMatchIn(url)
+    }
 
     @Synchronized
     fun shouldSend(url: String): Boolean {

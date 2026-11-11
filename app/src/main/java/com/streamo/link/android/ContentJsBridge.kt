@@ -11,7 +11,8 @@ import org.json.JSONObject
 class ContentJsBridge(private val mgr: TabsManager, private val tab: Tab) {
 
     @JavascriptInterface
-    fun send(url: String?, isMediaElement: Boolean) {
+    fun send(url: String?, isMediaElement: Boolean, tagName: String?) {
+        if ((tagName ?: "").lowercase() == "audio") return // المستخدم مش عاوز سحب الصوت
         if (url == null || !Defense.isHttp(url)) return
         if (Defense.decide(url, false, "") != Defense.ALLOW) return
         // وسوم الوسائط تُقبل كاملة؛ باقي JS فقط ما يطابق الامتداد (مقاطع .ts مستبعدة)

@@ -57,8 +57,9 @@ object NavigationGuard {
         return rec
     }
 
+    /** google-style hosts: JS .test semantics — containsMatchIn مش matches */
     private fun isGoogleHost(host: String): Boolean =
-        Regex("(^|\\.)google\\.[a-z.]{2,7}$", RegexOption.IGNORE_CASE).matches(host)
+        Regex("(^|\\.)google\\.[a-z.]{2,7}$", RegexOption.IGNORE_CASE).containsMatchIn(host)
 
     /**
      * @param tabUrl الرابط الحالي للتبويب

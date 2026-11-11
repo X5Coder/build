@@ -125,9 +125,27 @@ object Defense {
         } catch (_: Exception) { "" }
     }
 
+    /* نطاقات المستوى الثاني الشائعة (co.uk / com.eg / com.sa ...) — حتى يُحسب etld+1 بشكل صحيح */
+    private val SECOND_LEVEL_TLDS = setOf(
+        "co.uk", "org.uk", "ac.uk", "gov.uk", "me.uk",
+        "com.eg", "net.eg", "org.eg", "gov.eg", "edu.eg",
+        "com.sa", "net.sa", "org.sa", "gov.sa", "edu.sa",
+        "com.au", "net.au", "org.au", "com.tr", "net.tr",
+        "com.br", "net.br", "org.br", "com.cn", "net.cn", "com.hk", "com.tw",
+        "com.sg", "com.my", "com.ph", "com.mx", "com.ar", "com.co", "com.pe", "com.ve",
+        "co.jp", "ne.jp", "or.jp", "com.pk", "com.bd", "com.ng", "co.nz", "com.vn",
+        "com.ly", "com.tn", "com.dz", "com.ma", "co.za", "com.om", "com.bh", "com.kw",
+        "com.qa", "com.lb", "com.jo", "com.sy", "com.iq", "co.il"
+    )
+
     fun etld1(host: String): String {
         val p = host.split('.').filter { it.isNotEmpty() }
-        return if (p.size <= 2) p.joinToString(".") else p.subList(p.size - 2, p.size).joinToString(".")
+        if (p.size <= 2) return p.joinToString(".")
+        val last2 = p.subList(p.size - 2, p.size).joinToString(".").lowercase()
+        if (p.size >= 3 && SECOND_LEVEL_TLDS.contains(last2)) {
+            return p.subList(p.size - 3, p.size).joinToString(".")
+        }
+        return last2
     }
 
     fun sameSite(url: String, pageUrl: String): Boolean {
