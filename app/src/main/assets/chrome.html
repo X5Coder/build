@@ -1,0 +1,661 @@
+﻿<!DOCTYPE html>
+<!--
+  Streamo Link — Browser window (Windows).
+  Opens straight to Google. Compact dark toolbar: back/forward · tabs · history · [URL pill] · search · links.
+  All English UI. Streamo is an open-source project developed by Kimo.
+-->
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https: http:; img-src 'self' data: https: http:; font-src 'self'; media-src 'self' https: http: blob:; connect-src 'self' https: http:">
+<title>Streamo Link</title>
+<link rel="stylesheet" href="./shared/app.css">
+<style>
+  html, body {
+    height: 100%; margin: 0; padding: 0; overflow: hidden;
+    font-family: 'StreamoUI', Arial, Tahoma, sans-serif; background: var(--bg); color: var(--text);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ============ Compact dark toolbar ============ */
+  #toolbar {
+    height: 44px; flex: 0 0 auto;
+    background: #000000;
+    border-bottom: 1px solid #1C1C1C;
+    position: relative;
+    z-index: 40;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #toolbar .bar {
+    height: 44px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 6px;
+    gap: 2px;
+  }
+  .tbtn {
+    width: 38px; height: 38px;
+    border: none; background: transparent; border-radius: 10px;
+    cursor: pointer; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    color: #FFFFFF;
+    flex: 0 0 auto;
+  }
+  .tbtn:hover { background: #1A1A1A; }
+  .tbtn:active { transform: scale(0.92); }
+  .tbtn svg { display: block; stroke: #FFFFFF; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tbtn:disabled { opacity: 0.3; cursor: default; }
+  .tbtn:disabled:hover { background: transparent; }
+  .tbtn:disabled:active { transform: none; }
+
+  /* ============ URL pill (center) ============ */
+  .url-pill {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #141414;
+    border: 1px solid #242424;
+    border-radius: 999px;
+    padding: 0 6px 0 12px;
+    margin: 0 6px;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+  .url-pill:hover { border-color: #4A4A4A; }
+  .url-pill.editing { border-color: #FFFFFF; cursor: default; }
+  .url-pill .url-lock,
+  .url-pill .url-reload { flex: 0 0 auto; display: flex; align-items: center; cursor: pointer; border-radius: 6px; padding: 2px; transition: background 0.15s ease, transform 0.6s cubic-bezier(.2,.9,.25,1.08); }
+  .url-pill .url-lock:hover,
+  .url-pill .url-reload:hover { background: #242424; }
+  .url-pill .url-lock svg { stroke: #9A9A9A; }
+  .url-pill .url-reload svg { stroke: #9A9A9A; }
+  .url-pill .url-reload:hover svg { stroke: #FFFFFF; }
+  .url-pill.spinning .url-reload { animation: urlReloadSpin 0.8s linear; }
+  .url-pill.editing .url-lock svg { stroke: #FFFFFF; }
+  @keyframes urlReloadSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  #urlText {
+    flex: 1 1 auto; min-width: 0;
+    font-size: 10.5px; color: #C9CDD3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: 0.01em;
+    font-family: Consolas, 'Courier New', monospace;
+  }
+  .url-pill.editing #urlText { display: none; }
+  #urlInput {
+    display: none;
+    flex: 1 1 auto; min-width: 0;
+    border: none; outline: none; background: transparent;
+    color: #FFFFFF;
+    font-size: 11px;
+    font-family: Consolas, 'Courier New', monospace;
+    direction: ltr; text-align: left;
+    letter-spacing: 0.01em;
+  }
+  .url-pill.editing #urlInput { display: block; }
+  .copy-btn {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    border: none; background: transparent; border-radius: 7px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .copy-btn:hover { background: #242424; }
+  .copy-btn:active { transform: scale(0.9); }
+  .url-pill.editing .copy-btn { display: none; }
+  .url-go-btn {
+    display: none;
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    border: none; background: transparent; border-radius: 7px;
+    cursor: pointer; align-items: center; justify-content: center;
+  }
+  .url-go-btn:hover { background: #242424; }
+  .url-go-btn svg { stroke: #FFFFFF; }
+  .url-pill.editing .url-go-btn { display: flex; }
+
+  /* ============ Search mode ============ */
+  #searchBar .search-wrap {
+    flex: 1 1 auto; min-width: 0;
+    display: flex; align-items: center;
+    background: #141414;
+    border: 1px solid #242424;
+    border-radius: 999px;
+    padding: 0 14px 0 6px;
+    height: 32px;
+    margin: 0 2px;
+  }
+  #searchInput {
+    flex: 1 1 auto; min-width: 0;
+    border: none; outline: none; background: transparent;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-family: 'StreamoUI', 'Cairo', Tahoma, sans-serif;
+    height: 100%;
+    direction: rtl;
+    text-align: right;
+  }
+  #searchInput::placeholder { color: #8C8C8C; }
+  #searchBar.bar-enter { animation: searchBarIn 0.18s ease; }
+  #searchBar.bar-leave { animation: searchBarOut 0.15s ease forwards; }
+  #normalBar.bar-enter { animation: searchBarIn 0.18s ease; }
+  #normalBar.bar-leave { animation: searchBarOut 0.15s ease forwards; }
+  @keyframes searchBarIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes searchBarOut {
+    to { opacity: 0; transform: translateY(-6px); }
+  }
+
+  /* ============ Body (فليكس — التوبيرلبار فوق دائمًا مش بثوابت) ============ */
+  #body { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: #000000; }
+  #views { position: absolute; inset: 0; }
+  webview.tab-view { position: absolute; inset: 0; width: 100%; height: 100%; border: none; background: #000000; }
+  /* ============ Badge (عدّاد الروابط) ============ */
+  .badge {
+    position: absolute; top: -3px; right: -3px;
+    min-width: 17px; height: 17px; padding: 0 4px;
+    border-radius: 9px;
+    background: #FFFFFF; color: #000000;
+    font-size: 9.5px; font-weight: 800; line-height: 1;
+    display: none; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+
+  #scrim {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.55);
+    opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 20;
+  }
+  #scrim.show { opacity: 1; pointer-events: auto; }
+
+  /* ============ Side panels ============ */
+  .panelWrap {
+    position: absolute; top: 0; bottom: 0;
+    width: min(340px, 88vw);
+    background: var(--panel); z-index: 30;
+    transition: transform .26s cubic-bezier(.2,.8,.25,1);
+  }
+  #panelRight { right: 0; transform: translateX(105%); border-left: 1px solid var(--border); }
+  #panelRight.open { transform: translateX(0); }
+  #panelLeft { left: 0; transform: translateX(-105%); border-right: 1px solid var(--border); }
+  #panelLeft.open { transform: translateX(0); }
+  #panelTabs { left: 0; transform: translateX(-105%); border-right: 1px solid var(--border); }
+  #panelTabs.open { transform: translateX(0); }
+
+  /* ============ Toast ============ */
+  #toast {
+    position: absolute; bottom: 24px; left: 50%;
+    transform: translate(-50%, 10px);
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 18px; border-radius: 999px; font-size: 11px;
+    opacity: 0; transition: opacity .2s ease, transform .2s ease;
+    pointer-events: none; z-index: 70;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ============ Streamo Player — احترافي (بلا شات) ============ */
+  #player {
+    position: absolute; inset: 0; z-index: 60;
+    background: #000000;
+    display: none;
+    overflow: hidden;
+    animation: playerIn 0.18s ease;
+    user-select: none; -webkit-user-select: none;
+  }
+  #player.open { display: block; }
+  @keyframes playerIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  #playerStage {
+    position: absolute; inset: 0; overflow: hidden; background: #000000;
+  }
+  #playerVideo {
+    position: absolute; inset: 0; z-index: 1;
+    width: 100%; height: 100%;
+    background: #000000; object-fit: contain; outline: none;
+  }
+  .player-scrim {
+    position: absolute; left: 0; right: 0; z-index: 2; pointer-events: none;
+  }
+  .player-scrim-top { top: 0; height: 96px; background: linear-gradient(to bottom, rgba(0,0,0,0.62), rgba(0,0,0,0)); }
+  .player-scrim-bottom { bottom: 0; height: 150px; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0)); }
+
+  .player-top {
+    position: absolute; z-index: 5; top: 0; left: 0; right: 0;
+    height: 62px; display: flex; align-items: center; gap: 12px;
+    padding: 0 14px;
+    transition: transform 0.28s cubic-bezier(.3,.9,.3,1), opacity 0.28s ease;
+  }
+  .pclose {
+    width: 40px; height: 40px; flex: 0 0 auto; border: none; border-radius: 12px;
+    background: rgba(30,30,30,0.62); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.10); transition: background 0.15s ease;
+  }
+  .pclose:hover { background: rgba(45,45,45,0.78); }
+  #playerTitle {
+    flex: 1 1 auto; min-width: 0;
+    color: #FFFFFF; font-size: 11.5pt; font-weight: 700; letter-spacing: 0.02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    direction: ltr; text-align: left; opacity: 0.95;
+  }
+
+  /* Loading + error overlays */
+  .player-loading, .player-error {
+    position: absolute; inset: 0; z-index: 6; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  }
+  .player-loading { background: rgba(0,0,0,0.42); }
+  #player.loading .player-loading { display: flex; }
+  .pl-ring {
+    width: 58px; height: 58px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.10); border-top-color: #FFFFFF;
+    animation: spin 0.9s linear infinite;
+    box-shadow: 0 0 22px rgba(255,255,255,0.12);
+  }
+  .pl-title {
+    color: #FFFFFF; font-size: 16pt; font-weight: 800; letter-spacing: 0.04em;
+    display: flex; align-items: baseline; gap: 2px;
+  }
+  .pl-dots span { display: inline-block; animation: plBlink 1.25s infinite; }
+  .pl-dots span:nth-child(2) { animation-delay: 0.18s; }
+  .pl-dots span:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes plBlink { 0%, 60%, 100% { opacity: 0.15; } 30% { opacity: 1; } }
+  .pl-sub { color: #7B7B7B; font-size: 8pt; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+
+  .player-error { background: #050505; }
+  #player.error .player-error { display: flex; }
+  .pe-title { margin: 0; font-size: 13pt; font-weight: 800; color: #FFFFFF; }
+  .pe-sub { margin: -6px 0 0; font-size: 9pt; color: #8C8C8C; }
+  #playerRetry {
+    background: #FFFFFF; color: #000000; border: none; border-radius: 999px;
+    padding: 9px 30px; font-size: 10pt; font-weight: 700; cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease;
+  }
+  #playerRetry:hover { background: #D9D9D9; }
+  #playerRetry:active { transform: scale(0.96); }
+
+  /* Center flash (play/pause bump) */
+  .player-tap-flash {
+    position: absolute; z-index: 5; top: 50%; left: 50%;
+    width: 92px; height: 92px; margin: -46px 0 0 -46px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(18,18,18,0.72); border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    opacity: 0; transform: scale(0.55); pointer-events: none;
+  }
+  .player-tap-flash.flash-on { animation: tapFlashPop 0.42s ease forwards; }
+  @keyframes tapFlashPop {
+    0% { opacity: 0; transform: scale(0.5); }
+    28% { opacity: 1; transform: scale(1.02); }
+    100% { opacity: 0; transform: scale(1.28); }
+  }
+
+  /* ====== Controls — الشريط السفلي الواحد: شريط التقدم فوق + العمود كلها تحت ====== */
+  .player-bottom {
+    position: absolute; z-index: 5; left: 16px; right: 16px; bottom: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+    transition: transform 0.28s cubic-bezier(.3,.9,.3,1), opacity 0.28s ease;
+  }
+
+  /* ====== Custom seek bar — drag & hover preview ====== */
+  .progress {
+    position: relative; align-self: stretch; z-index: 0;
+    height: 22px; display: flex; align-items: center; cursor: pointer; touch-action: none;
+    padding: 0 2px;
+  }
+  .progress-track {
+    position: relative; width: 100%; height: 4px; border-radius: 3px;
+    background: rgba(255,255,255,0.22);
+  }
+  .progress-fill {
+    position: absolute; left: 0; top: 0; bottom: 0; width: var(--p, 0%);
+    border-radius: 3px; background: #FFFFFF;
+  }
+  .progress-thumb {
+    position: absolute; top: 50%; left: var(--p, 0%);
+    width: 13px; height: 13px; border-radius: 50%;
+    background: #FFFFFF; border: none;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,255,255,0.2);
+    transition: transform 0.12s ease;
+  }
+  .progress:hover .progress-thumb, .progress.dragging .progress-thumb { transform: translate(-50%, -50%) scale(1.25); }
+  .progress-tooltip {
+    position: absolute; bottom: 20px; left: var(--p, 0%);
+    transform: translateX(-50%);
+    background: rgba(24,24,27,0.94); border: 1px solid rgba(255,255,255,0.12);
+    color: #F1F1F1; font-size: 8.5pt; padding: 3px 9px; border-radius: 6px;
+    font-family: Consolas, 'Courier New', monospace; font-variant-numeric: tabular-nums;
+    pointer-events: none; display: none; white-space: nowrap;
+  }
+  .progress:hover .progress-tooltip, .progress.dragging .progress-tooltip { display: block; }
+
+  /* ====== Single pill bar — كل الأدوات في قطعة واحدة ====== */
+  .ctrl-bar {
+    align-self: flex-end;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(24,24,27,0.82);
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 999px;
+    padding: 4px 8px;
+    backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+  }
+  .pbtn-s {
+    width: 34px; height: 34px; border: none; border-radius: 50%; background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, transform 0.12s ease;
+  }
+  .pbtn-s:hover { background: rgba(255,255,255,0.10); }
+  .pbtn-s:active { transform: scale(0.9); }
+  .pbtn-play {
+    width: 34px; height: 34px; border: none; border-radius: 50%; background: #FFFFFF; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.12s ease, background 0.15s ease;
+  }
+  .pbtn-play:hover { transform: scale(1.1); background: #FFFFFF; }
+  .pbtn-play:active { transform: scale(0.92); }
+  #playerTime {
+    color: #F1F1F1; font-size: 9pt; direction: ltr; white-space: nowrap;
+    font-family: Consolas, 'Courier New', monospace; font-variant-numeric: tabular-nums;
+    padding: 0 4px 0 6px; opacity: 0.95;
+  }
+  .ctrl-divider { width: 1px; height: 17px; background: rgba(255,255,255,0.14); margin: 0 2px; }
+
+  /* ====== controls hidden state ====== */
+  #player.controls-hidden .player-top { transform: translateY(-120%); opacity: 0; pointer-events: none; }
+  #player.controls-hidden .player-bottom { transform: translateY(125%); opacity: 0; pointer-events: none; }
+  #player.controls-hidden .player-scrim-top,
+  #player.controls-hidden .player-scrim-bottom { opacity: 0; }
+  .player-scrim-top, .player-scrim-bottom { transition: opacity 0.28s ease; }
+
+  /* ============ ANDROID: chrome is drawn OVER a native tab WebView ============ */
+  /* الصفحة نفسها تترسم من WebView أصيل تحتنا — الفراغات لازم تبقى شفافة */
+  html, body { background: transparent !important; }
+  #body { background: transparent !important; }
+
+  /* ============ ANDROID: حجم الهاتف ============ */
+  @media (max-width: 560px) {
+    #toolbar { height: 40px; }
+    #toolbar .bar { height: 40px; padding: 0 2px; gap: 0; }
+    .tbtn { width: 30px; height: 30px; border-radius: 8px; }
+    .tbtn svg { width: 19px; height: 19px; stroke-width: 1.9; }
+    .url-pill { height: 27px; padding: 0 4px 0 8px; gap: 5px; margin: 0 3px; }
+    #urlText { font-size: 9.5px; }
+    #urlInput { font-size: 10px; }
+    .copy-btn { width: 22px; height: 22px; }
+    .url-go-btn { width: 22px; height: 22px; }
+    .url-pill .url-lock svg, .url-pill .url-reload svg { width: 15px; height: 15px; }
+    .badge { min-width: 15px; height: 15px; font-size: 8.5px; border-radius: 8px; }
+    #searchBar .search-wrap { height: 28px; padding: 0 10px 0 4px; }
+    #searchInput { font-size: 11px; }
+    .panelWrap { width: min(300px, 88vw); }
+    .panel-header { padding: 10px 12px !important; }
+    .panel-count { font-size: 15px !important; }
+    .notif-stack { top: 4px; right: 4px; left: 4px; width: auto; }
+    .notif { padding: 7px 9px; gap: 7px; border-radius: 10px; }
+    .notif-sub { font-size: 9px !important; }
+    #toast { font-size: 10px; padding: 6px 14px; bottom: 16px; max-width: 92vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .credit-icons, .panel-credit p { font-size: 9px !important; }
+    #playerTitle { font-size: 11px !important; max-width: 46vw !important; }
+    #playerTime { font-size: 10.5px !important; }
+    .pbtn-s { width: 36px !important; height: 36px !important; }
+    .pbtn-play { width: 44px !important; height: 44px !important; }
+    .pbtn-s svg { width: 18px !important; height: 18px !important; }
+    .pbtn-play svg { width: 15px !important; height: 15px !important; }
+    .player-scrim-top { height: 72px !important; }
+    .player-scrim-bottom { height: 116px !important; }
+    .player-error h3 { font-size: 16px !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <!-- Normal mode -->
+  <div class="bar" id="normalBar">
+    <button class="tbtn" id="btnBack" title="Back" aria-label="Back">
+      <svg viewBox="0 0 24 24" width="19" height="19"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button class="tbtn" id="btnForward" title="Forward" aria-label="Forward">
+      <svg viewBox="0 0 24 24" width="19" height="19"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+    <button class="tbtn" id="btnTabs" title="Tabs" aria-label="Tabs">
+      <svg viewBox="0 0 24 24" width="19" height="19"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 5v14"/></svg>
+    </button>
+    <button class="tbtn" id="btnHistory" title="Search history" aria-label="Search history">
+      <svg viewBox="0 0 24 24" width="19" height="19"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h10"/></svg>
+    </button>
+
+    <div class="url-pill" id="urlPill" title="Current page — click to copy (click the lock to type a URL or search)">
+      <span class="url-lock" id="urlLock" title="Click the lock to type in the bar" role="button" tabindex="0" aria-label="Toggle edit mode">
+        <svg id="lockIconLocked" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#9A9A9A" stroke-width="2" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <svg id="lockIconUnlocked" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" style="display:none"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.7-1.4"/></svg>
+      </span>
+      <span class="url-reload" id="urlReload" title="Reload the page" role="button" tabindex="0" aria-label="Reload">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#9A9A9A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+      </span>
+      <span id="urlText" dir="ltr">google.com</span>
+      <input id="urlInput" type="text" dir="ltr" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Type a URL or search and press Enter…" aria-label="Edit address">
+      <button class="copy-btn" id="btnCopyUrl" title="Copy URL" aria-label="Copy URL">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#C9CDD3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+      </button>
+      <button class="url-go-btn" id="btnUrlGo" title="Go" aria-label="Go">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+
+    <button class="tbtn" id="btnSearch" title="Search a movie or series" aria-label="Search">
+      <svg viewBox="0 0 24 24" width="19" height="19"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    </button>
+    <button class="tbtn" id="btnLinks" title="Extracted links" aria-label="Extracted links">
+      <svg viewBox="0 0 24 24" width="19" height="19"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+      <span class="badge" id="badgeLinks">0</span>
+    </button>
+  </div>
+
+  <!-- Search mode (RTL — English input) -->
+  <div class="bar" id="searchBar" dir="rtl" style="display:none">
+    <button class="tbtn" id="btnSearchBack" title="Back" aria-label="Back">
+      <svg viewBox="0 0 24 24" width="19" height="19"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="search-wrap">
+      <input id="searchInput" type="text" dir="rtl" placeholder="Enter movie or series name, then press Enter" autocomplete="off" enterkeyhint="search">
+    </div>
+    <button class="tbtn" id="btnDoSearch" title="Search" aria-label="Search">
+      <svg viewBox="0 0 24 24" width="19" height="19"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="body">
+  <!-- Tabs are injected here -->
+  <div id="views"></div>
+
+  <!-- Mini capture cards stack -->
+  <div class="notif-stack" id="notifStack"></div>
+
+  <div id="scrim"></div>
+
+  <!-- Extracted Links panel -->
+  <aside class="panelWrap" id="panelRight" aria-hidden="true">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon"><img src="./shared/assets/link.png" alt=""></div>
+        <div>
+          <h2 class="panel-title">Extracted Links</h2>
+        </div>
+        <div class="panel-count" id="linksCount">0</div>
+        <button class="panel-close" id="closeLinks" aria-label="Close">✕</button>
+      </div>
+      <div class="panel-actions-top">
+        <button class="clear-all" id="clearLinksBtn">Clear all</button>
+      </div>
+      <div class="panel-list" id="linksList">
+        <div class="list-content" id="linksListContent"></div>
+        <div class="panel-credit">
+          <p>Streamo is an open-source project developed by Kimo</p>
+          <div class="credit-icons">
+            <a class="credit-link" href="https://github.com/X5Coder/Streamo" data-url="https://github.com/X5Coder/Streamo" aria-label="Streamo on GitHub" title="github.com/X5Coder/Streamo">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="#9A9A9A"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.04 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.84 1.18 3.1 0 4.43-2.7 5.4-5.26 5.68.41.35.78 1.05.78 2.12 0 1.53-.01 2.76-.01 3.14 0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+            </a>
+            <a class="credit-link" href="https://live-cinema.pages.dev/" data-url="https://live-cinema.pages.dev/" aria-label="Streamo website" title="live-cinema.pages.dev">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#9A9A9A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.6 4 5.6 4 9s-1.4 6.4-4 9c-2.6-2.6-4-5.6-4-9s1.4-6.4 4-9z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="panel-version">
+        <span class="panel-version-text">Streamo Link</span>
+        <span class="panel-version-dot"></span>
+        <span class="panel-version-text"><strong>v2.0.0</strong></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Search History panel -->
+  <aside class="panelWrap" id="panelLeft" aria-hidden="true">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon"><img src="./shared/assets/list.png" alt=""></div>
+        <div>
+          <h2 class="panel-title">Search History</h2>
+        </div>
+        <div class="panel-count" id="searchCount">0</div>
+        <button class="panel-close" id="closeSearch" aria-label="Close">✕</button>
+      </div>
+      <div class="panel-actions-top">
+        <button class="clear-all" id="clearSearchBtn">Clear all</button>
+      </div>
+      <div class="panel-list" id="searchList">
+        <div class="list-content" id="searchListContent"></div>
+        <div class="panel-credit">
+          <p>Streamo is an open-source project developed by Kimo</p>
+          <div class="credit-icons">
+            <a class="credit-link" href="https://github.com/X5Coder/Streamo" data-url="https://github.com/X5Coder/Streamo" aria-label="Streamo on GitHub" title="github.com/X5Coder/Streamo">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="#9A9A9A"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.04 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.84 1.18 3.1 0 4.43-2.7 5.4-5.26 5.68.41.35.78 1.05.78 2.12 0 1.53-.01 2.76-.01 3.14 0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+            </a>
+            <a class="credit-link" href="https://live-cinema.pages.dev/" data-url="https://live-cinema.pages.dev/" aria-label="Streamo website" title="live-cinema.pages.dev">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#9A9A9A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.6 4 5.6 4 9s-1.4 6.4-4 9c-2.6-2.6-4-5.6-4-9s1.4-6.4 4-9z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="panel-version">
+        <span class="panel-version-text">Streamo Link</span>
+        <span class="panel-version-dot"></span>
+        <span class="panel-version-text"><strong>v2.0.0</strong></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Tabs panel -->
+  <aside class="panelWrap" id="panelTabs" aria-hidden="true">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon"><svg viewBox="0 0 24 24" width="17" height="17" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 5v14"/></svg></div>
+        <div>
+          <h2 class="panel-title">Tabs</h2>
+        </div>
+        <div class="panel-count" id="tabsCount">0</div>
+        <button class="panel-close" id="closeTabs" aria-label="Close">✕</button>
+      </div>
+      <div class="panel-actions-top">
+        <button class="action-btn" id="newTabBtn" style="flex:1;background:#FFFFFF;color:#000000;border-color:#FFFFFF;font-weight:700">+ New Tab</button>
+        <button class="clear-all" id="closeAllTabsBtn">Close all</button>
+      </div>
+      <div class="panel-list" id="tabsList"></div>
+      <div class="panel-version">
+        <span class="panel-version-text">Streamo Link</span>
+        <span class="panel-version-dot"></span>
+        <span class="panel-version-text"><strong>v2.0.0</strong></span>
+      </div>
+    </div>
+  </aside>
+
+  <div id="toast"></div>
+
+  <!-- ============ Streamo Player — احترافي (بلا شات) ============ -->
+  <div id="player" aria-hidden="true">
+    <div id="playerStage">
+      <video id="playerVideo" playsinline></video>
+      <div class="player-scrim player-scrim-top" aria-hidden="true"></div>
+      <div class="player-scrim player-scrim-bottom" aria-hidden="true"></div>
+
+      <div class="player-tap-flash" id="playerTapFlash" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="76" height="76" id="tapFlashIcon" fill="#FFFFFF">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      </div>
+
+      <div class="player-loading" id="playerLoading" role="status" aria-label="Loading">
+        <div class="pl-ring"></div>
+        <div class="pl-title">Loading<span class="pl-dots"><span>.</span><span>.</span><span>.</span></span></div>
+        <div class="pl-sub">Buffering the stream</div>
+      </div>
+
+      <div class="player-error" id="playerError" role="alert">
+        <p class="pe-title">Unable to load this video</p>
+        <p class="pe-sub">The link may be expired or unsupported.</p>
+        <button id="playerRetry" type="button">Retry</button>
+      </div>
+    </div>
+
+    <div class="player-top">
+      <button class="pclose" id="playerClose" title="Close player" aria-label="Close player">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"><path d="M17 7L7 17M7 7l10 10"/></svg>
+      </button>
+      <div id="playerTitle"></div>
+    </div>
+
+    <div class="player-bottom">
+      <div class="progress" id="progress" role="slider" aria-label="Seek time" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+        <div class="progress-track" id="progressTrack">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-thumb" id="progressThumb"></div>
+          <div class="progress-tooltip" id="progressTooltip">0:00</div>
+        </div>
+      </div>
+
+      <div class="ctrl-bar" role="group" aria-label="Player controls">
+        <button class="pbtn-s" id="playerSkipBack" title="Back 10 seconds" aria-label="Back 10 seconds">
+          <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12a7 7 0 1 0 2-4.9"/><path d="M5 4.4v4h4"/><text x="12" y="16" font-size="6.6" font-family="Arial,Tahoma,sans-serif" font-weight="800" fill="#FFFFFF" stroke="none" text-anchor="middle">10</text></svg>
+        </button>
+        <button class="pbtn-play" id="playerToggle" title="Play / Pause" aria-label="Play or pause">
+          <svg viewBox="0 0 24 24" width="17" height="17" id="iconPlay" fill="#000000"><path d="M8.5 5.5v13l11-6.5-11-6.5z"/></svg>
+          <svg viewBox="0 0 24 24" width="17" height="17" id="iconPause" style="display:none" fill="#000000"><path d="M7 5h4.2v14H7zM12.8 5H17v14h-4.2z"/></svg>
+        </button>
+        <button class="pbtn-s" id="playerSkipForward" title="Forward 10 seconds" aria-label="Forward 10 seconds">
+          <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12a7 7 0 1 1-2-4.9"/><path d="M19 4.4v4h-4"/><text x="12" y="16" font-size="6.6" font-family="Arial,Tahoma,sans-serif" font-weight="800" fill="#FFFFFF" stroke="none" text-anchor="middle">10</text></svg>
+        </button>
+        <span id="playerTime" dir="ltr">0:00 / 0:00</span>
+        <span class="ctrl-divider"></span>
+        <button class="pbtn-s" id="playerFullscreen" title="Fullscreen" aria-label="Fullscreen">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shared/store.js"></script>
+<script src="./shared/searchEngines.js"></script>
+<script src="./shared/panel-ui.js"></script>
+<script src="./shared/libs/shaka-player.compiled.js"></script>
+<script src="./adapter.js"></script>
+<script src="./chrome.js"></script>
+</body>
+</html>

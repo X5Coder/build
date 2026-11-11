@@ -1,0 +1,11 @@
+# Local ad/tracker hosts (measured on real streaming sites, 2026-10-01).
+# One host per line, suffix-matched. Managed by hand + scripts/update_adlists.py
+# never touches this file (it writes easylist.txt / easyprivacy.txt / hagezi.txt).
+agl006.host
+histats.com
+xbeat.space
+dtscout.com
+dtscdn.com
+mrktmtrcs.net
+onaudience.com
+newshinyd.com
