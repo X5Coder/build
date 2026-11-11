@@ -40,16 +40,8 @@ jobs:
           "$SDKM" "platform-tools" "platforms;android-35" "build-tools;35.0.0" || \
           "$SDKM" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Generate debug keystore (APK قابل للتثبيت مباشرة)
-        run: |
-          mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkeypair -v \
-              -keystore ~/.android/debug.keystore \
-              -storepass android -keypass android \
-              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
+      - name: Keystore
+        run: echo "repo keystore streamo.jks is used — no generation needed"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4

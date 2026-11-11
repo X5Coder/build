@@ -16,11 +16,11 @@ android {
     }
 
     signingConfigs {
-        // موقّع بمفتاح debug القياسي => قابل للتثبيت مباشرة على الهاتف من الـ APK
+        // موقّع بمفتاح ثابت مستدير داخل المستودع — كل بناء يطلع بنفس التوقيع => التحديث يتسلا بسلاسة
         release {
-            storeFile file(System.getProperty('user.home') + '/.android/debug.keystore')
+            storeFile file('../streamo.jks')
             storePassword 'android'
-            keyAlias 'androiddebugkey'
+            keyAlias 'streamo'
             keyPassword 'android'
         }
     }
