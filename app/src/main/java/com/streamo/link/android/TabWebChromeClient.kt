@@ -6,6 +6,7 @@ package com.streamo.link.android
 
 import android.app.Activity
 import android.content.Context
+import android.webkit.JsPromptResult
 import android.webkit.JsResult
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -73,7 +74,7 @@ class TabWebChromeClient(private val mgr: TabsManager, private val tab: Tab) : W
         return true
     }
 
-    override fun onJsPrompt(view: WebView, url: String?, message: String?, defaultValue: String?, result: JsResult): Boolean {
+    override fun onJsPrompt(view: WebView, url: String?, message: String?, defaultValue: String?, result: JsPromptResult): Boolean {
         val ctx = view.context
         try {
             if (ctx is Activity) {
